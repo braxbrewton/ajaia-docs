@@ -1,0 +1,12 @@
+{
+  "name": "ajaia-docs",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000",
+    "build:web": "npm --prefix apps/web run build",
+    "lint:web": "npm --prefix apps/web run lint",
+    "seed": "cd apps/api && .venv/Scripts/python -m app.seed",
+    "test:api": "cd apps/api && .venv/Scripts/python -m pytest -q"
+  }
+}

@@ -10,7 +10,6 @@ python-multipart>=0.0.12
 mammoth>=1.8
 markdown-it-py>=3.0
 nh3>=0.2.18
-email-validator>=2.2
 
 # dev / test
 pytest>=8.3

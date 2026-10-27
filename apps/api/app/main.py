@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import get_settings
+from app.routers import auth, documents, shares
 
 settings = get_settings()
 
@@ -34,6 +35,11 @@ async def http_error(_: Request, exc: StarletteHTTPException):
 @app.exception_handler(RequestValidationError)
 async def validation_error(_: Request, exc: RequestValidationError):
     return _error(422, "validation_error", "Invalid request", exc.errors())
+
+
+app.include_router(auth.router)
+app.include_router(documents.router)
+app.include_router(shares.router)
 
 
 @app.get("/health")

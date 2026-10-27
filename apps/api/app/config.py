@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # SQLite by default so local setup needs zero infrastructure.
     # Production uses Postgres, e.g. postgresql+psycopg://user:pass@host/db
     database_url: str = "sqlite:///./ajaia.db"
-    jwt_secret: str = "dev-secret-change-me"
+    jwt_secret: str = "dev-only-secret-change-me-in-production-0123456789"
     jwt_algorithm: str = "HS256"
     cookie_name: str = "ajaia_session"
     cookie_secure: bool = False

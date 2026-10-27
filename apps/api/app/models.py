@@ -50,7 +50,9 @@ class Document(Base):
 
 class DocumentShare(Base):
     __tablename__ = "document_shares"
-    __table_args__ = (UniqueConstraint("document_id", "user_id", name="uq_share_doc_user"),)
+    __table_args__ = (
+        UniqueConstraint("document_id", "user_id", name="uq_share_doc_user"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     document_id: Mapped[str] = mapped_column(

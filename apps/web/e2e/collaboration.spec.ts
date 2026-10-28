@@ -11,15 +11,27 @@ async function signInAs(browser: Browser, name: string): Promise<Page> {
 
 const saved = (page: Page) => expect(page.getByRole("status").filter({ hasText: "All changes saved" })).toBeVisible();
 
+// Tests delete the documents they create, so they can also run repeatedly against a live
+// deployment (E2E_BASE_URL) without leaving data behind.
+const cleanup: Array<() => Promise<unknown>> = [];
+const docIdFrom = (page: Page) => page.url().split("/documents/")[1];
+function deleteAfterTest(page: Page) {
+  const id = docIdFrom(page);
+  cleanup.push(() => page.request.delete(`/api/documents/${id}`));
+}
+test.afterEach(async () => {
+  for (const run of cleanup.splice(0)) await run().catch(() => {});
+});
+
 test("create, format, persist, share, and enforce permissions", async ({ browser }) => {
   const title = `Quarterly plan ${Date.now()}`;
 
   // ── Alice creates and formats a document ────────────────────────────────────────────────
   const alice = await signInAs(browser, "Alice Anderson");
-  await expect(alice.getByText("You haven't created any documents yet")).toBeVisible();
 
   await alice.getByRole("button", { name: "+ New document" }).click();
   await expect(alice).toHaveURL(/\/documents\/.+/);
+  deleteAfterTest(alice);
 
   const titleInput = alice.getByLabel("Document title");
   await titleInput.fill(title);
@@ -104,6 +116,10 @@ test("create, format, persist, share, and enforce permissions", async ({ browser
 
 test("import a markdown file as an editable document, and reject unsupported types", async ({ browser }) => {
   const carol = await signInAs(browser, "Carol Chen");
+  const stamp = Date.now();
+  const myDocsHeading = carol.getByRole("heading", { name: /^My documents/ });
+  await expect(myDocsHeading).toBeVisible();
+  const countBefore = await myDocsHeading.textContent();
 
   // Unsupported type: clear message, no document created
   await carol.getByLabel("Import file").setInputFiles({
@@ -114,17 +130,18 @@ test("import a markdown file as an editable document, and reject unsupported typ
   await expect(carol.getByRole("alert").filter({ hasText: "photo.png" })).toContainText(
     "Supported file types: .txt, .md, .docx",
   );
-  await expect(carol.getByText("You haven't created any documents yet")).toBeVisible();
+  await expect(myDocsHeading).toHaveText(countBefore!); // nothing was created
 
   // Markdown: becomes a new document with formatting preserved, titled from the file name
   const md = "# Launch checklist\n\nMake it **fast** and clear.\n\n- design\n- build\n";
   await carol.getByLabel("Import file").setInputFiles({
-    name: "launch_checklist.md",
+    name: `launch_checklist_${stamp}.md`,
     mimeType: "text/markdown",
     buffer: Buffer.from(md),
   });
   await expect(carol).toHaveURL(/\/documents\/.+/);
-  await expect(carol.getByLabel("Document title")).toHaveValue("launch checklist");
+  deleteAfterTest(carol);
+  await expect(carol.getByLabel("Document title")).toHaveValue(`launch checklist ${stamp}`);
   const body = carol.getByRole("textbox", { name: "Document content" });
   await expect(body.locator("h1")).toHaveText("Launch checklist");
   await expect(body.locator("strong")).toHaveText("fast");
@@ -143,14 +160,15 @@ test("import a markdown file as an editable document, and reject unsupported typ
   // Back on the dashboard: the new doc is listed and the buttons aren't stuck in a busy state
   await carol.getByRole("link", { name: "← Documents" }).click();
   await expect(
-    carol.getByRole("region", { name: "My documents" }).getByRole("listitem").filter({ hasText: "launch checklist" }),
+    carol.getByRole("region", { name: "My documents" }).getByRole("listitem").filter({ hasText: `launch checklist ${stamp}` }),
   ).toBeVisible();
   await expect(carol.getByRole("button", { name: "+ New document" })).toBeEnabled();
   await expect(carol.getByRole("button", { name: "Choose file" })).toBeEnabled();
 
   // And creating another document still works right after
   await carol.getByRole("button", { name: "+ New document" }).click();
-  await expect(carol).toHaveURL(/\/documents\/.+/);
+  await expect(carol.getByLabel("Document title")).toHaveValue("Untitled document"); // a different, new doc
+  deleteAfterTest(carol);
 });
 
 test("signed-out users are sent to the login screen", async ({ page }) => {

@@ -1,6 +1,7 @@
 import io
 import zipfile
 
+from app.config import get_settings
 from app.services.importer import title_from_filename
 
 
@@ -144,8 +145,18 @@ def test_empty_file_rejected(alice):
 
 
 def test_oversized_file_rejected(alice):
-    r = upload(alice, "big.txt", b"a" * (5 * 1024 * 1024 + 1))
+    limit = get_settings().max_upload_bytes
+    r = upload(alice, "big.txt", b"a" * (limit + 1))
     assert r.status_code == 413
+    assert "too large" in r.json()["error"]["message"]
+
+
+def test_file_within_upload_limit_but_too_long_to_edit_is_rejected(alice):
+    # Under the byte limit, but the converted document exceeds the editor's size cap.
+    r = upload(alice, "novel.txt", b"word " * 450_000)  # ~2.2 MB of text
+    assert r.status_code == 413
+    assert "too large to edit" in r.json()["error"]["message"]
+    assert alice.get("/documents").json()["owned"] == []  # nothing half-created
 
 
 def test_missing_file_is_validation_error(alice):

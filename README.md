@@ -23,7 +23,7 @@ Requires Node 20+ and Python 3.11+.
 cd apps/api
 python -m venv .venv
 # Windows: .venv\Scripts\pip   macOS/Linux: .venv/bin/pip
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-dev.txt
 cd ../..
 npm run seed       # creates tables + seeded demo users (SQLite file, no DB server needed)
 npm run dev:api
@@ -58,7 +58,7 @@ On the dashboard, drag a file in or click **Choose file** to turn it into a new,
 | `.md` / `.markdown` | Headings, bold, italic, lists, quotes. Raw HTML inside Markdown is shown as plain text, never executed |
 | `.docx` | Headings, bold, italic, underline, lists. Images and tables are **not** imported |
 
-Max 5 MB. Other file types are rejected with a message listing the supported ones. The document title comes from the file name. Validation happens in the browser for instant feedback and again on the server (extension, size, empty/corrupt files).
+Max 4 MB (Vercel caps request bodies at ~4.5 MB). Other file types are rejected with a message listing the supported ones. The document title comes from the file name. Validation happens in the browser for instant feedback and again on the server (extension, size, empty/corrupt files).
 
 ## Tests
 

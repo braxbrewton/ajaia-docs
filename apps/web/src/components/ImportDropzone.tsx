@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import { useResetWhenHidden } from "@/lib/hooks";
-import { IMPORT_ACCEPT, IMPORT_LABEL, validateImportFile } from "@/lib/importFile";
+import { IMPORT_ACCEPT, IMPORT_LABEL, IMPORT_MAX_LABEL, validateImportFile } from "@/lib/importFile";
 import type { DocumentFull } from "@/lib/types";
 import { ErrorBanner, buttonSecondary } from "./ui";
 
@@ -56,7 +56,7 @@ export function ImportDropzone({ onImported }: { onImported: (doc: DocumentFull)
             {busy ? "Importing…" : "Import a file as a new document"}
           </p>
           <p className="mt-0.5 text-slate-500">
-            Drag a file here or choose one. Supported: <strong>{IMPORT_LABEL}</strong> (up to 5 MB).
+            Drag a file here or choose one. Supported: <strong>{IMPORT_LABEL}</strong> (up to {IMPORT_MAX_LABEL}).
             Headings, bold, italic, underline and lists are kept; images and tables in Word files are
             not imported.
           </p>

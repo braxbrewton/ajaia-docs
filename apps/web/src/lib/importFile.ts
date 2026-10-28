@@ -3,7 +3,8 @@
 
 export const IMPORT_EXTENSIONS = [".txt", ".md", ".markdown", ".docx"] as const;
 export const IMPORT_ACCEPT = IMPORT_EXTENSIONS.join(",");
-export const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+export const IMPORT_MAX_BYTES = 4 * 1024 * 1024; // keep in sync with MAX_UPLOAD_BYTES on the API
+export const IMPORT_MAX_LABEL = `${IMPORT_MAX_BYTES / 1024 / 1024} MB`;
 export const IMPORT_LABEL = ".txt, .md, .docx";
 
 export function validateImportFile(file: File): string | null {
@@ -13,7 +14,7 @@ export function validateImportFile(file: File): string | null {
   }
   if (file.size === 0) return `“${file.name}” is empty.`;
   if (file.size > IMPORT_MAX_BYTES) {
-    return `“${file.name}” is too large (max ${IMPORT_MAX_BYTES / 1024 / 1024} MB).`;
+    return `“${file.name}” is too large (max ${IMPORT_MAX_LABEL}).`;
   }
   return null;
 }

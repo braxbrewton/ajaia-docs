@@ -3,10 +3,12 @@
   "private": true,
   "scripts": {
     "dev:web": "npm --prefix apps/web run dev",
-    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000",
+    "dev:api": "node scripts/py.mjs -m uvicorn app.main:app --reload --port 8000",
     "build:web": "npm --prefix apps/web run build",
     "lint:web": "npm --prefix apps/web run lint",
-    "seed": "cd apps/api && .venv/Scripts/python -m app.seed",
-    "test:api": "cd apps/api && .venv/Scripts/python -m pytest -q"
+    "seed": "node scripts/py.mjs -m app.seed",
+    "test:api": "node scripts/py.mjs -m pytest -q",
+    "test:e2e": "npm --prefix apps/web run test:e2e",
+    "gen:types": "node scripts/py.mjs -m scripts.dump_openapi ../web/openapi.json && npm --prefix apps/web run gen:types"
   }
 }

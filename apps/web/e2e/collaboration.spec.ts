@@ -102,6 +102,57 @@ test("create, format, persist, share, and enforce permissions", async ({ browser
   );
 });
 
+test("import a markdown file as an editable document, and reject unsupported types", async ({ browser }) => {
+  const carol = await signInAs(browser, "Carol Chen");
+
+  // Unsupported type: clear message, no document created
+  await carol.getByLabel("Import file").setInputFiles({
+    name: "photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("not really an image"),
+  });
+  await expect(carol.getByRole("alert").filter({ hasText: "photo.png" })).toContainText(
+    "Supported file types: .txt, .md, .docx",
+  );
+  await expect(carol.getByText("You haven't created any documents yet")).toBeVisible();
+
+  // Markdown: becomes a new document with formatting preserved, titled from the file name
+  const md = "# Launch checklist\n\nMake it **fast** and clear.\n\n- design\n- build\n";
+  await carol.getByLabel("Import file").setInputFiles({
+    name: "launch_checklist.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from(md),
+  });
+  await expect(carol).toHaveURL(/\/documents\/.+/);
+  await expect(carol.getByLabel("Document title")).toHaveValue("launch checklist");
+  const body = carol.getByRole("textbox", { name: "Document content" });
+  await expect(body.locator("h1")).toHaveText("Launch checklist");
+  await expect(body.locator("strong")).toHaveText("fast");
+  await expect(body.locator("ul li")).toHaveText(["design", "build"]);
+
+  // It is a normal editable document: edit, autosave, persists
+  await body.locator("ul li").last().click();
+  await carol.keyboard.press("End");
+  await carol.keyboard.type(" and ship");
+  await saved(carol);
+  await carol.reload();
+  await expect(carol.getByRole("textbox", { name: "Document content" }).locator("ul li").last()).toHaveText(
+    "build and ship",
+  );
+
+  // Back on the dashboard: the new doc is listed and the buttons aren't stuck in a busy state
+  await carol.getByRole("link", { name: "← Documents" }).click();
+  await expect(
+    carol.getByRole("region", { name: "My documents" }).getByRole("listitem").filter({ hasText: "launch checklist" }),
+  ).toBeVisible();
+  await expect(carol.getByRole("button", { name: "+ New document" })).toBeEnabled();
+  await expect(carol.getByRole("button", { name: "Choose file" })).toBeEnabled();
+
+  // And creating another document still works right after
+  await carol.getByRole("button", { name: "+ New document" }).click();
+  await expect(carol).toHaveURL(/\/documents\/.+/);
+});
+
 test("signed-out users are sent to the login screen", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);

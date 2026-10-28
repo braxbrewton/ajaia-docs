@@ -23,7 +23,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 DB = Annotated[Session, Depends(get_db)]
 
 
-def _to_out(ctx: DocContext) -> DocumentOut:
+def to_document_out(ctx: DocContext) -> DocumentOut:
     doc = ctx.doc
     shares = (
         [ShareOut(user=s.user, role=s.role) for s in doc.shares]
@@ -82,12 +82,12 @@ def create_document(body: DocumentCreate, user: CurrentUser, db: DB):
     db.add(doc)
     db.commit()
     db.refresh(doc)
-    return _to_out(DocContext(doc=doc, access=Access.owner, user=user))
+    return to_document_out(DocContext(doc=doc, access=Access.owner, user=user))
 
 
 @router.get("/{doc_id}", response_model=DocumentOut)
 def get_document(ctx: Annotated[DocContext, Depends(require_doc(Access.viewer))]):
-    return _to_out(ctx)
+    return to_document_out(ctx)
 
 
 @router.patch("/{doc_id}", response_model=DocumentOut)
@@ -102,7 +102,7 @@ def update_document(
         ctx.doc.content = sanitize_html(body.content)
     db.commit()
     db.refresh(ctx.doc)
-    return _to_out(ctx)
+    return to_document_out(ctx)
 
 
 @router.delete("/{doc_id}", status_code=204)

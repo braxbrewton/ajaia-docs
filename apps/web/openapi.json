@@ -293,6 +293,48 @@
         }
       }
     },
+    "/documents/import": {
+      "post": {
+        "tags": [
+          "import"
+        ],
+        "summary": "Import Document",
+        "description": "Create a new editable document from an uploaded .txt, .md or .docx file.",
+        "operationId": "import_document_documents_import_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_document_documents_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{doc_id}/shares": {
       "get": {
         "tags": [
@@ -465,6 +507,20 @@
           "owner"
         ],
         "title": "Access"
+      },
+      "Body_import_document_documents_import_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_document_documents_import_post"
       },
       "DocumentCreate": {
         "properties": {

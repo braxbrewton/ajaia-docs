@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import get_settings
-from app.routers import auth, documents, shares
+from app.routers import auth, documents, imports, shares
 
 settings = get_settings()
 
@@ -39,6 +39,7 @@ async def validation_error(_: Request, exc: RequestValidationError):
 
 app.include_router(auth.router)
 app.include_router(documents.router)
+app.include_router(imports.router)
 app.include_router(shares.router)
 
 

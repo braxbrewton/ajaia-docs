@@ -115,6 +115,26 @@ export interface paths {
         patch: operations["update_document_documents__doc_id__patch"];
         trace?: never;
     };
+    "/documents/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Document
+         * @description Create a new editable document from an uploaded .txt, .md or .docx file.
+         */
+        post: operations["import_document_documents_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{doc_id}/shares": {
         parameters: {
             query?: never;
@@ -179,6 +199,11 @@ export interface components {
          * @enum {string}
          */
         Access: "viewer" | "editor" | "owner";
+        /** Body_import_document_documents_import_post */
+        Body_import_document_documents_import_post: {
+            /** File */
+            file: string;
+        };
         /** DocumentCreate */
         DocumentCreate: {
             /**
@@ -527,6 +552,39 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_document_documents_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_document_documents_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

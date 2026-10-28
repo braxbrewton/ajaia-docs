@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
-import { formatWhen, useApi, useRequireUser } from "@/lib/hooks";
+import { formatWhen, useApi, useRequireUser, useResetWhenHidden } from "@/lib/hooks";
 import type { DocumentFull, DocumentList, DocumentSummary } from "@/lib/types";
 import { AppHeader } from "./AppHeader";
+import { ImportDropzone } from "./ImportDropzone";
 import { ErrorBanner, Spinner, buttonPrimary } from "./ui";
 
 export function Dashboard() {
@@ -15,6 +16,7 @@ export function Dashboard() {
   const { data, error, isLoading, mutate } = useApi<DocumentList>(user ? "/documents" : null);
   const [creating, setCreating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  useResetWhenHidden(() => setCreating(false));
 
   async function createDocument() {
     setCreating(true);
@@ -50,6 +52,8 @@ export function Dashboard() {
             {creating ? "Creating…" : "+ New document"}
           </button>
         </div>
+
+        <ImportDropzone onImported={(doc) => router.push(`/documents/${doc.id}`)} />
 
         {actionError && (
           <div className="mb-4">

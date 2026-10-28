@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate as globalMutate, type SWRConfiguration } from "swr";
 import { ApiError, api, fetcher } from "./api";
@@ -30,6 +30,19 @@ export function useRequireUser(): User | null {
   }, [unauthenticated, router]);
 
   return user;
+}
+
+/**
+ * With Cache Components, navigating away keeps the page mounted (hidden) and restores its state
+ * when you come back. Transient "in progress" flags (creating, importing…) must not survive that,
+ * or buttons stay stuck disabled. Effects are cleaned up when the page is hidden, so reset there.
+ */
+export function useResetWhenHidden(reset: () => void) {
+  const latest = useRef(reset);
+  useEffect(() => {
+    latest.current = reset;
+  });
+  useEffect(() => () => latest.current(), []);
 }
 
 /** Drop every cached response so one user's data never shows up for the next. */

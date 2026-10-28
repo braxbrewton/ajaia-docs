@@ -12,12 +12,14 @@ export function EditorScreen({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const user = useRequireUser();
 
-  // The editor owns live content once loaded, so don't refetch on focus. Read-only viewers poll so
-  // they see the owner's edits (this is "refresh", not real-time collaboration).
+  // Everyone polls (this is "refresh", not real-time collaboration): viewers see edits made by
+  // owners/editors, and editors pick up each other's saved changes. The editor only applies
+  // remote content when the local user has nothing unsaved, so polling never clobbers typing.
   const { data: doc, error, mutate } = useApi<DocumentFull>(user ? `/documents/${id}` : null, {
-    revalidateOnFocus: false,
+    revalidateOnFocus: true,
+    revalidateOnMount: true,
     shouldRetryOnError: false,
-    refreshInterval: (latest) => (latest && !latest.can_edit ? 5000 : 0),
+    refreshInterval: 5000,
   });
 
   if (error && error.status !== 401) {
@@ -51,5 +53,15 @@ export function EditorScreen({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
-  return <DocumentEditor key={doc.id} doc={doc} user={user} refresh={() => mutate()} />;
+  return (
+    <DocumentEditor
+      key={doc.id}
+      doc={doc}
+      user={user}
+      refresh={() => mutate()}
+      // Keep the cached copy in step with what we just saved, so reopening the doc (the page is
+      // kept mounted by Cache Components) never shows or re-saves stale content.
+      onSaved={(saved) => void mutate(saved, { revalidate: false })}
+    />
+  );
 }

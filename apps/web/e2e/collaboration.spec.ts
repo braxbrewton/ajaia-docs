@@ -114,6 +114,56 @@ test("create, format, persist, share, and enforce permissions", async ({ browser
   );
 });
 
+test("an editor's changes save, stay after navigating away, and show up for the owner without reload", async ({ browser }) => {
+  const alice = await signInAs(browser, "Alice Anderson");
+  await alice.getByRole("button", { name: "+ New document" }).click();
+  await expect(alice).toHaveURL(/\/documents\/.+/);
+  deleteAfterTest(alice);
+  const docUrl = alice.url();
+  const aliceBody = alice.getByRole("textbox", { name: "Document content" });
+  await aliceBody.click();
+  await alice.keyboard.type("Alice wrote this.");
+  await saved(alice);
+
+  // Share with Bob as editor (via the API; the dialog is covered by the test above)
+  const res = await alice.request.post(`/api/documents/${docIdFrom(alice)}/shares`, {
+    data: { email: "bob@ajaia.test", role: "editor" },
+  });
+  expect(res.ok()).toBeTruthy();
+
+  // Bob edits and it saves
+  const bob = await signInAs(browser, "Bob Brown");
+  await bob.goto(docUrl);
+  const bobBody = bob.getByRole("textbox", { name: "Document content" });
+  await expect(bobBody).toContainText("Alice wrote this.");
+  await expect(bobBody).toHaveAttribute("contenteditable", "true");
+  await bobBody.click();
+  await bob.keyboard.press("Control+End");
+  await bob.keyboard.type(" Bob added this.");
+  await saved(bob);
+
+  // Alice sees Bob's change WITHOUT reloading
+  await expect(aliceBody).toContainText("Alice wrote this. Bob added this.", { timeout: 15_000 });
+
+  // Bob leaves and comes back: his edit is still there (no stale cached copy)
+  await bob.getByRole("link", { name: "← Documents" }).click();
+  await expect(bob.getByRole("heading", { name: "Documents", exact: true })).toBeVisible();
+  await bob.goto(docUrl);
+  await expect(bob.getByRole("textbox", { name: "Document content" }).locator("visible=true")).toContainText(
+    "Alice wrote this. Bob added this.",
+  );
+
+  // Alice keeps typing (she picked up Bob's text, so nothing is overwritten) and Bob sees it
+  await aliceBody.click();
+  await alice.keyboard.press("Control+End");
+  await alice.keyboard.type(" Alice again.");
+  await saved(alice);
+  await expect(bob.getByRole("textbox", { name: "Document content" }).locator("visible=true")).toContainText(
+    "Alice wrote this. Bob added this. Alice again.",
+    { timeout: 15_000 },
+  );
+});
+
 test("import a markdown file as an editable document, and reject unsupported types", async ({ browser }) => {
   const carol = await signInAs(browser, "Carol Chen");
   const stamp = Date.now();

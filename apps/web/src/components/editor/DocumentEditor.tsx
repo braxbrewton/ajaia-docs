@@ -20,14 +20,24 @@ export function DocumentEditor({
   doc,
   user,
   refresh,
+  onSaved,
 }: {
   doc: DocumentFull;
   user: User;
   refresh: () => Promise<unknown>;
+  onSaved: (doc: DocumentFull) => void;
 }) {
   const canEdit = doc.can_edit;
   const isOwner = doc.role === "owner";
-  const { status, errorMessage, schedule, retry } = useAutosave(doc.id);
+  // The server content we've last shown or saved. Lets us tell "someone else changed it" apart
+  // from "the server normalised our own HTML", so we only reload the editor for the former.
+  const appliedContent = useRef(doc.content);
+  const { status, errorMessage, schedule, retry, hasUnsaved } = useAutosave(doc.id, (saved, patch) => {
+    // Only a content save means the server's content is "ours"; a title-only save may return
+    // content someone else wrote, which the sync effect below still needs to show.
+    if (patch.content !== undefined) appliedContent.current = saved.content;
+    onSaved(saved);
+  });
 
   const [title, setTitle] = useState(doc.title);
   const committedTitle = useRef(doc.title);
@@ -55,13 +65,33 @@ export function DocumentEditor({
     onUpdate: ({ editor }) => schedule({ content: editor.getHTML() }),
   });
 
-  // Read-only viewers: show the owner's latest content/title as it refreshes.
+  // Pull in other people's saved changes as the document refreshes.
+  // - Viewers always follow the server copy.
+  // - Editors only do so when they have nothing unsaved, so we never overwrite their typing
+  //   (and a stale cached copy can never replace content they have already saved).
   useEffect(() => {
-    if (canEdit || !editor) return;
-    if (editor.getHTML() !== doc.content) {
-      editor.commands.setContent(doc.content, { emitUpdate: false });
+    if (!editor) return;
+    if (doc.content === appliedContent.current) return; // nothing new from the server
+    if (canEdit && hasUnsaved()) return; // retried on the next refresh, once saved
+    appliedContent.current = doc.content;
+    if (editor.getHTML() === doc.content) return;
+    const { from, to } = editor.state.selection;
+    editor.commands.setContent(doc.content, { emitUpdate: false });
+    if (canEdit) {
+      const max = editor.state.doc.content.size;
+      editor.commands.setTextSelection({ from: Math.min(from, max), to: Math.min(to, max) });
     }
-  }, [canEdit, editor, doc.content]);
+  }, [canEdit, editor, doc.content, hasUnsaved]);
+
+  // Same for the title (editors: only if they haven't changed it locally).
+  useEffect(() => {
+    if (!canEdit || hasUnsaved()) return;
+    if (title !== committedTitle.current) return; // being edited in the input
+    if (doc.title !== committedTitle.current) {
+      committedTitle.current = doc.title;
+      setTitle(doc.title);
+    }
+  }, [canEdit, doc.title, title, hasUnsaved]);
 
   // If permissions change (e.g. the owner switched us to view-only), follow along.
   useEffect(() => {

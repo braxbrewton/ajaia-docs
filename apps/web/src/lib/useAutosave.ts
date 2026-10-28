@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "./api";
-import type { DocumentPatch } from "./types";
+import type { DocumentFull, DocumentPatch } from "./types";
 
 export type SaveStatus = "idle" | "unsaved" | "saving" | "saved" | "error";
 
@@ -17,9 +17,15 @@ const DEBOUNCE_MS = 800;
  * - If a save fails, the unsaved changes are kept and retried on the next edit or `retry()`.
  * - Pending changes are flushed when leaving the page.
  */
-export function useAutosave(docId: string) {
+export function useAutosave(docId: string, onSaved?: (doc: DocumentFull, patch: DocumentPatch) => void) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Keep the latest callback without re-creating `flush` (which would re-run the unmount effect).
+  const onSavedRef = useRef(onSaved);
+  useEffect(() => {
+    onSavedRef.current = onSaved;
+  });
 
   const pending = useRef<DocumentPatch>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,7 +47,14 @@ export function useAutosave(docId: string) {
         inflight.current += 1;
         setStatus("saving");
         try {
-          await api(`/documents/${docId}`, { method: "PATCH", json: patch, keepalive });
+          const saved = await api<DocumentFull>(`/documents/${docId}`, {
+            method: "PATCH",
+            json: patch,
+            keepalive,
+          });
+          // Report before clearing "in flight" so the client cache never looks newer-than-local
+          // while we are still considered busy.
+          onSavedRef.current?.(saved, patch);
           inflight.current -= 1;
           setErrorMessage(null);
           // Edits that arrived while saving keep the doc in "unsaved/saving"
@@ -92,5 +105,8 @@ export function useAutosave(docId: string) {
 
   const retry = useCallback(() => void flush(), [flush]);
 
-  return { status, errorMessage, schedule, retry };
+  /** True while local edits are waiting to be saved, being saved, or failed to save. */
+  const hasUnsaved = useCallback(() => hasPending() || inflight.current > 0, [hasPending]);
+
+  return { status, errorMessage, schedule, retry, hasUnsaved };
 }

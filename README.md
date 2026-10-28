@@ -15,28 +15,41 @@ docs/      screenshots
 
 ## Local setup
 
-Requires Node 20+ and Python 3.11+.
+Requires **Node 20+** and **Python 3.11+**. No database server needed locally (SQLite).
 
-### 1. API (http://localhost:8000)
+```bash
+npm run setup   # one time: venv + dependencies + .env files + demo users
+npm run dev     # API on :8000 and web on :3000 together (Ctrl+C stops both)
+```
+
+Then open http://localhost:3000. Works the same on Windows, macOS and Linux.
+
+`npm run setup` is safe to re-run: it never overwrites existing `.env` files.
+
+### Environment files
+
+| File | Purpose | Created by |
+|---|---|---|
+| `apps/api/.env` | `DATABASE_URL` (local SQLite), `JWT_SECRET`, `COOKIE_SECURE`, … | `setup` (copies `.env.example` and generates a random `JWT_SECRET`) |
+| `apps/web/.env.local` | `API_URL`, where Next proxies `/api/*` (default `http://127.0.0.1:8000`) | `setup` (copies `.env.example`) |
+
+Both real env files are git-ignored; the `.env.example` files document every variable. The web app proxies `/api/*` to the API, so the session cookie stays same-origin and no CORS setup is needed.
+
+<details>
+<summary>Manual setup (what <code>npm run setup</code> does)</summary>
 
 ```bash
 cd apps/api
 python -m venv .venv
-# Windows: .venv\Scripts\pip   macOS/Linux: .venv/bin/pip
-.venv/bin/pip install -r requirements-dev.txt
-cd ../..
-npm run seed       # creates tables + seeded demo users (SQLite file, no DB server needed)
-npm run dev:api
+.venv/bin/pip install -r requirements-dev.txt      # Windows: .venv\Scripts\pip
+cp .env.example .env                               # then set JWT_SECRET to a long random value
+cd ../web && npm install && cp .env.example .env.local && cd ../..
+npm run seed                                       # tables + demo users
+npm run dev:api                                    # terminal 1
+npm run dev:web                                    # terminal 2
 ```
 
-### 2. Web (http://localhost:3000)
-
-```bash
-cd apps/web && npm install && cd ../..
-npm run dev:web
-```
-
-The web app proxies `/api/*` to `API_URL` (default `http://127.0.0.1:8000`), so cookies stay same-origin.
+</details>
 
 ### Seeded users (no password; pick one on the login screen)
 

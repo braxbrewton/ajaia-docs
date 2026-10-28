@@ -18,6 +18,9 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
+  // Live deployments add network + serverless latency to every step.
+  timeout: remote ? 120_000 : 30_000,
+  expect: { timeout: remote ? 15_000 : 5_000 },
   use: {
     baseURL: remote ?? `http://127.0.0.1:${WEB_PORT}`,
     trace: "retain-on-failure",

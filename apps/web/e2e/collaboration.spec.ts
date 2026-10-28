@@ -167,7 +167,8 @@ test("import a markdown file as an editable document, and reject unsupported typ
 
   // And creating another document still works right after
   await carol.getByRole("button", { name: "+ New document" }).click();
-  await expect(carol.getByLabel("Document title")).toHaveValue("Untitled document"); // a different, new doc
+  // A different, new doc. (Cache Components keeps earlier pages mounted but hidden, so target the visible one.)
+  await expect(carol.getByLabel("Document title").locator("visible=true")).toHaveValue("Untitled document");
   deleteAfterTest(carol);
 });
 

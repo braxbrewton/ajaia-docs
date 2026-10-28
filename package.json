@@ -2,6 +2,8 @@
   "name": "ajaia-docs",
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "node scripts/py.mjs -m uvicorn app.main:app --reload --port 8000",
     "build:web": "npm --prefix apps/web run build",
